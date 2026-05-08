@@ -1,175 +1,255 @@
 import { useState, useRef, useEffect } from "react";
 
-const SYSTEM_PROMPT = `Sen YÖKDİL ve YDS sınavlarında uzman bir İngilizce koçusun.
+const SYSTEM_PROMPT = `You are a YÖKDİL/YDS English exam coach. You speak Turkish to the user.
 
-════════════════════════════════════════
-AŞAMA 1 — İHTİYAÇ ANALİZİ
-════════════════════════════════════════
-Kullanıcıdan şu bilgileri öğren (maksimum 3 mesajda tamamla):
-1. YÖKDİL mi YDS mi?
-2. YÖKDİL ise: Sağlık / Fen / Sosyal Bilimler?
-3. Hedef puan, sınav tarihi, mevcut seviye, zayıf alan
+## CRITICAL OUTPUT FORMAT
+EVERY response MUST end with options in this exact format:
+<OPTIONS>
+option1
+option2
+option3
+option4
+</OPTIONS>
 
-Analiz tamamlanınca SADECE şunu yaz:
-###TANI###
-{"sinav_turu":"yokdil","alan":"saglik","zayif_alan":"kelime","seviye":"orta","gunluk_hedef":20}
-###TANI_SON###
-Hazırız! Kelime çalışmasına başlayalım mı?
+## PHASE 1: NEEDS ANALYSIS
+Ask these one at a time:
 
-════════════════════════════════════════
-AŞAMA 2 — KELİME MODU
-════════════════════════════════════════
+Step 1 — Exam type:
+"Hangi sınava hazırlanıyorsun?"
+<OPTIONS>
+YÖKDİL
+YDS
+</OPTIONS>
 
-ADIM 1: 5 kelimeyi şu formatta ver:
-###KELIME###
-{"word":"prevalence","meaning":"yaygınlık","example":"The prevalence of diabetes has increased globally.","tip":"'prevail' fiilinden türemiştir.","level":"C1"}
-###KELIME_SON###
+Step 2 (if YÖKDİL) — Field:
+"Hangi alandan giriyorsun?"
+<OPTIONS>
+Sağlık Bilimleri
+Fen Bilimleri
+Sosyal Bilimler
+</OPTIONS>
 
-ADIM 2: Kelimeler bittikten sonra 4 farklı quiz türü uygula. Her quiz türü MUTLAKA İNGİLİZCE olacak:
+Step 3 — Target score:
+"Hedef puanın nedir?"
+<OPTIONS>
+55-60
+65-70
+75-80
+80 ve üzeri
+</OPTIONS>
 
-QUIZ TİPİ 1 — ÇOKTAN SEÇMELİ (2 soru):
-What does "prevalence" mean?
-a) the act of treating a disease
-b) the widespread occurrence of something
-c) a medical examination
-d) the cause of a disease
-[Doğru cevap: b]
+Step 4 — Level:
+"Mevcut İngilizce seviyen?"
+<OPTIONS>
+Başlangıç
+Orta
+İleri
+</OPTIONS>
 
-QUIZ TİPİ 2 — KELİME EŞLEŞTİRME İngilizce→Türkçe (2 soru):
-Match the word with its Turkish meaning:
-"mitigate" means:
-a) teşhis etmek
-b) hafifletmek
-c) uygulamak
-d) izlemek
-[Doğru cevap: b]
+Step 5 — Weak area:
+"En çok zorlandığın alan?"
+<OPTIONS>
+Kelime
+Gramer
+Paragraf
+Hepsi
+</OPTIONS>
 
-QUIZ TİPİ 3 — KELİME EŞLEŞTİRME Türkçe→İngilizce (2 soru):
-Which word means "yaygınlık" in English?
-a) incidence
-b) adverse
-c) prevalence
-d) prognosis
-[Doğru cevap: c]
+After step 5, output diagnosis then options:
+DIAGNOSIS:{"sinav_turu":"yokdil","alan":"saglik","zayif_alan":"kelime","seviye":"orta","gunluk_hedef":20}
+<OPTIONS>
+Kelime Çalış
+Gramer
+Paragraf
+Mini Sınav
+</OPTIONS>
 
-QUIZ TİPİ 4 — EŞ ANLAM / ZIT ANLAM (2 soru):
-Which word is closest in meaning to "mitigate"?
-a) worsen  b) alleviate  c) diagnose  d) prescribe
-[Doğru cevap: b]
+## PHASE 2: VOCABULARY MODE
+Give 5 words:
+WORD:{"word":"prevalence","meaning":"yaygınlık","example":"The prevalence of diabetes has increased.","tip":"from prevail","level":"C1"}
 
-Which word is OPPOSITE in meaning to "adverse"?
-a) harmful  b) negative  c) beneficial  d) chronic
-[Doğru cevap: c]
+Then ask 8 quiz questions IN ENGLISH. Each question:
+[question text]
+<OPTIONS>
+a) choice1
+b) choice2
+c) choice3
+d) choice4
+</OPTIONS>
 
-QUIZ KURALLARI:
-- Tüm sorular İNGİLİZCE olacak
-- Her soru için kullanıcı cevap verdikten sonra ###DOGRU### veya ###YANLIS### yaz
-- Yanlış cevapta doğru cevabı açıkla (Türkçe açıklama yapabilirsin)
-- 8 soru toplamda
+After user answers: write CORRECT or WRONG, explain in Turkish, ask next question with <OPTIONS>.
 
-════════════════════════════════════════
-AŞAMA 3 — GRAMER MODU
-════════════════════════════════════════
-YÖKDİL/YDS soru tipleri: Relative Clauses, Passive Voice, Conditionals, Tense, Modals
-- Konuyu kısaca Türkçe açıkla
-- 5 İngilizce çoktan seçmeli soru sor
-- Her soru için ###DOGRU### veya ###YANLIS### yaz
+Quiz types:
+- "What does X mean?"
+- "X means:" (EN→TR)
+- "Which word means Y in English?" (TR→EN)
+- "Which word is closest in meaning to X?"
+- "Which word is OPPOSITE in meaning to X?"
 
-════════════════════════════════════════
-AŞAMA 4 — PARAGRAF MODU
-════════════════════════════════════════
-- Alana uygun İngilizce akademik paragraf ver
-- 5 İngilizce soru sor (main idea, detail, inference, vocabulary, tone)
-- Her soru için ###DOGRU### veya ###YANLIS### yaz
+After 8 questions:
+<OPTIONS>
+Devam Et
+Başka Konu
+Mola
+</OPTIONS>
 
-════════════════════════════════════════
-ALAN BAZLI İÇERİK
-════════════════════════════════════════
-saglik: tıbbi terimler, anatomy, pharmacology, clinical, public health
-fen: matematik, fizik, kimya, mühendislik, bilgisayar
-sosyal: hukuk, ekonomi, sosyoloji, tarih, psikoloji
-yds: genel akademik İngilizce
+## PHASE 3: GRAMMAR MODE
+Explain in Turkish, then 5 questions each with:
+<OPTIONS>
+a) choice1
+b) choice2
+c) choice3
+d) choice4
+</OPTIONS>
+Write CORRECT or WRONG after each.
 
-════════════════════════════════════════
-GENEL KURALLAR
-════════════════════════════════════════
-- Açıklamalar Türkçe, sorular İngilizce
-- Bold (**) kullanma, düz metin yaz
-- Kısa ve öz ol
-- Her aktivite sonunda "Devam mı?" diye sor
-- Günlük hedefe ulaşınca ###STREAK### yaz`;
+## PHASE 4: READING MODE
+English paragraph, then 5 questions each with:
+<OPTIONS>
+a) choice1
+b) choice2
+c) choice3
+d) choice4
+</OPTIONS>
+Write CORRECT or WRONG after each.
+
+## CONTENT BY FIELD
+- saglik: medical terms, anatomy, pharmacology
+- fen: physics, chemistry, engineering
+- sosyal: law, economics, sociology
+- yds: general academic English
+
+## RULES
+- Never use bold (**)
+- ALWAYS include <OPTIONS> — this is mandatory in every single response
+- Quiz questions in English, explanations in Turkish
+- Write STREAK when daily goal reached`;
+
+// Silent self-check prompt — kullanıcıya görünmez
+const CHECK_PROMPT = `Your previous response is missing <OPTIONS>...</OPTIONS>. 
+Output the same response again but add the appropriate options at the end. 
+Do NOT add any meta-commentary. Just output the corrected response directly.`;
 
 const today = () => new Date().toDateString();
-const load = () => { try { return JSON.parse(localStorage.getItem("yk5") || "{}"); } catch { return {}; } };
-const save = (s) => localStorage.setItem("yk5", JSON.stringify(s));
-
+const load = () => { try { return JSON.parse(localStorage.getItem("yk11") || "{}"); } catch { return {}; } };
+const save = (s) => localStorage.setItem("yk11", JSON.stringify(s));
 const ALAN = { saglik: "🏥 Sağlık", fen: "🔬 Fen", sosyal: "📚 Sosyal", yok: "" };
 const SINAV = { yokdil: "YÖKDİL", yds: "YDS" };
 
 function parseResponse(text) {
   let clean = text;
+  let buttons = [];
   let newWords = [];
-  let dogru = 0, yanlis = 0;
-  let diagParsed = null;
-  let streakDone = false;
+  let dogru = 0, yanlis = 0, diagParsed = null, streakDone = false;
 
-  // Tanı parse
-  const taniMatch = text.match(/###TANI###\s*([\s\S]*?)\s*###TANI_SON###/);
-  if (taniMatch) {
-    try {
-      diagParsed = JSON.parse(taniMatch[1].trim());
-      console.log("✅ Tanı OK:", diagParsed);
-    } catch(e) {
-      console.log("❌ Tanı hatası:", e.message);
-    }
-    clean = clean.replace(/###TANI###[\s\S]*?###TANI_SON###/g, "").trim();
+  // Diagnosis
+  const diagMatch = text.match(/DIAGNOSIS:\{([^}]+)\}/);
+  if (diagMatch) {
+    try { diagParsed = JSON.parse("{" + diagMatch[1] + "}"); } catch(e) {}
+    clean = clean.replace(/DIAGNOSIS:\{[^}]+\}/, "").trim();
   }
 
-  // Kelime parse
-  const kelimePattern = /###KELIME###\s*([\s\S]*?)\s*###KELIME_SON###/g;
-  let km;
-  while ((km = kelimePattern.exec(text)) !== null) {
+  // Words
+  const wordPattern = /WORD:\{([^}]+)\}/g;
+  let wm;
+  while ((wm = wordPattern.exec(text)) !== null) {
     try {
-      const w = JSON.parse(km[1].trim());
+      const w = JSON.parse("{" + wm[1] + "}");
       newWords.push({ ...w, id: Date.now() + Math.random(), learnedAt: new Date().toLocaleDateString("tr-TR") });
-      console.log("✅ Kelime:", w.word);
-    } catch(e) {
-      console.log("❌ Kelime hatası:", e.message);
-    }
+    } catch(e) {}
   }
-  clean = clean.replace(/###KELIME###[\s\S]*?###KELIME_SON###/g, "").trim();
+  clean = clean.replace(/WORD:\{[^}]+\}/g, "").trim();
 
-  // Doğru/Yanlış
-  dogru = (text.match(/###DOGRU###/g) || []).length;
-  yanlis = (text.match(/###YANLIS###/g) || []).length;
-  clean = clean.replace(/###DOGRU###/g, "✅ Doğru!").replace(/###YANLIS###/g, "❌ Yanlış!").trim();
+  // Correct/Wrong
+  dogru = (text.match(/\bCORRECT\b/g) || []).length;
+  yanlis = (text.match(/\bWRONG\b/g) || []).length;
+  clean = clean.replace(/\bCORRECT\b/g, "✅ Doğru!").replace(/\bWRONG\b/g, "❌ Yanlış!").trim();
 
   // Streak
-  if (text.includes("###STREAK###")) {
-    streakDone = true;
-    clean = clean.replace(/###STREAK###/g, "").trim();
+  if (/\bSTREAK\b/.test(text)) { streakDone = true; clean = clean.replace(/\bSTREAK\b/g, "").trim(); }
+
+  // Options from <OPTIONS> tag
+  const optMatch = clean.match(/<OPTIONS>\s*([\s\S]*?)\s*<\/OPTIONS>/);
+  if (optMatch) {
+    buttons = optMatch[1].trim().split("\n").map(b => b.trim()).filter(b => b.length > 0);
+    clean = clean.replace(/<OPTIONS>[\s\S]*?<\/OPTIONS>/g, "").trim();
   }
 
-  // Kelimeleri sohbette göster
+  // Fallback: detect a) b) c) d)
+  if (buttons.length === 0) {
+    const lines = clean.split("\n");
+    const choices = lines.filter(l => /^[a-d]\)\s+.+/i.test(l.trim()));
+    if (choices.length >= 2) {
+      buttons = choices.map(l => l.trim());
+      clean = lines.filter(l => !/^[a-d]\)\s+.+/i.test(l.trim())).join("\n").trim();
+    }
+  }
+
+  // Word display
   if (newWords.length > 0) {
-    const wordDisplay = newWords.map(w =>
-      `📖 ${w.word} — ${w.meaning}\n   Örnek: "${w.example}"\n   💡 ${w.tip} [${w.level}]`
+    const wd = newWords.map(w =>
+      `📖 ${w.word} — ${w.meaning}\n   "${w.example}"\n   💡 ${w.tip} [${w.level}]`
     ).join("\n\n");
-    clean = wordDisplay + (clean ? "\n\n" + clean : "");
+    clean = wd + (clean ? "\n\n" + clean : "");
   }
 
-  console.log("CLEAN:", clean.slice(0, 100));
-  return { clean, newWords, dogru, yanlis, diagParsed, streakDone };
+  return { clean: clean.trim(), buttons, newWords, dogru, yanlis, diagParsed, streakDone };
 }
+
+// API call
+const callGemini = async (apiKey, msgs, systemPrompt) => {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: msgs,
+        generationConfig: { maxOutputTokens: 8192 }
+      })
+    }
+  );
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+};
+
+// Generate → silent self-check if needed
+const callWithSilentCheck = async (apiKey, msgs) => {
+  // Step 1: Generate
+  let raw = "";
+  for (let i = 0; i < 3; i++) {
+    try { raw = await callGemini(apiKey, msgs, SYSTEM_PROMPT); if (raw) break; }
+    catch(e) {}
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  if (!raw) return null;
+
+  // Step 2: Check if <OPTIONS> present
+  if (/<OPTIONS>[\s\S]*?<\/OPTIONS>/.test(raw)) return raw;
+
+  // Step 3: Silent background fix — no user-visible commentary
+  try {
+    const fixMsgs = [
+      ...msgs,
+      { role: "model", parts: [{ text: raw }] },
+      { role: "user", parts: [{ text: CHECK_PROMPT }] }
+    ];
+    const fixed = await callGemini(apiKey, fixMsgs, SYSTEM_PROMPT);
+    if (fixed && /<OPTIONS>[\s\S]*?<\/OPTIONS>/.test(fixed)) return fixed;
+  } catch(e) {}
+
+  return raw; // return original if fix failed
+};
 
 export default function App() {
   const s = load();
   const [view, setView] = useState("chat");
-  const [messages, setMessages] = useState(s.messages || [
-    { role: "assistant", content: "Merhaba! 👋 YÖKDİL/YDS koçunuz burada.\n\nYÖKDİL mi yoksa YDS mi sınavına giriyorsun?" }
-  ]);
+  const [messages, setMessages] = useState(s.messages || []);
+  const [buttons, setButtons] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("Düşünüyor...");
   const [typing, setTyping] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [diag, setDiag] = useState(s.diag || null);
@@ -178,82 +258,90 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const endRef = useRef(null);
   const taRef = useRef(null);
+  const initialized = useRef(false);
 
   useEffect(() => { save({ messages, diag, words, stats }); }, [messages, diag, words, stats]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    if (messages.length === 0) {
+      setMessages([{ role: "assistant", content: "Merhaba! 👋 YÖKDİL/YDS koçunuz burada.\n\nHangi sınava hazırlanıyorsun?" }]);
+      setButtons(["YÖKDİL", "YDS"]);
+    } else {
+      setButtons(diag ? ["Kelime Çalış", "Gramer", "Paragraf", "Mini Sınav"] : ["YÖKDİL", "YDS"]);
+    }
+  }, []);
+
   const showToast = (msg, type = "ok") => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
 
-  const typeAnim = (text, onDone) => {
+  const typeAnim = (text, btns, onDone) => {
     setIsTyping(true); setTyping(""); let i = 0;
     const iv = setInterval(() => {
       i++; setTyping(text.slice(0, i));
-      if (i >= text.length) { clearInterval(iv); setIsTyping(false); setTyping(""); onDone(text); }
-    }, text.length > 300 ? 6 : 12);
+      if (i >= text.length) {
+        clearInterval(iv); setIsTyping(false); setTyping("");
+        setButtons(btns);
+        onDone(text);
+      }
+    }, text.length > 400 ? 6 : 12);
   };
 
   const send = async (userText) => {
     if (!userText.trim() || loading || isTyping) return;
     setInput("");
+    setButtons([]);
     if (taRef.current) taRef.current.style.height = "auto";
     setLoading(true);
+    setLoadingMsg("Düşünüyor...");
+
     const newMsgs = [...messages, { role: "user", content: userText }];
     setMessages(newMsgs);
 
     const apiKey = import.meta.env.VITE_GEMINI_KEY;
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: newMsgs.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-            generationConfig: { maxOutputTokens: 8192 }
-          })
-        }
-      );
-      const data = await res.json();
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      console.log("RAW:", raw.slice(0, 200));
+    const geminiMsgs = newMsgs.map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
 
-      if (!raw) {
-        setLoading(false);
-        setMessages(p => [...p, { role: "assistant", content: "⚠️ Yanıt alınamadı." }]);
-        return;
-      }
+    const t1 = setTimeout(() => setLoadingMsg("Hazırlanıyor..."), 3000);
+    const t2 = setTimeout(() => setLoadingMsg("Biraz daha bekle..."), 7000);
 
-      const { clean, newWords, dogru, yanlis, diagParsed, streakDone } = parseResponse(raw);
+    const raw = await callWithSilentCheck(apiKey, geminiMsgs);
+    clearTimeout(t1); clearTimeout(t2);
 
-      if (diagParsed) { setDiag(diagParsed); showToast("✅ Profil oluşturuldu!"); }
-      if (newWords.length > 0) {
-        setWords(prev => { showToast(`${newWords.length} kelime eklendi! 📚`); return [...prev, ...newWords]; });
-      }
-      if (dogru > 0 || yanlis > 0 || streakDone) {
-        setStats(prev => {
-          const isNew = prev.lastDay !== today();
-          const ns = streakDone ? (isNew ? prev.streak + 1 : prev.streak) : prev.streak;
-          if (streakDone && isNew) showToast(`🔥 ${ns} günlük seri!`, "streak");
-          else if (dogru > 0) showToast(`✅ ${dogru} doğru!`);
-          return { dogru: prev.dogru + dogru, yanlis: prev.yanlis + yanlis, streak: ns, lastDay: streakDone ? today() : prev.lastDay };
-        });
-      }
-
+    if (!raw) {
       setLoading(false);
-      typeAnim(clean, (t) => setMessages(p => [...p, { role: "assistant", content: t }]));
-    } catch(e) {
-      console.error(e);
-      setLoading(false);
-      setMessages(p => [...p, { role: "assistant", content: "⚠️ Bağlantı hatası." }]);
+      setButtons(["Tekrar Dene"]);
+      setMessages(p => [...p, { role: "assistant", content: "Bağlantı kurulamadı. Tekrar dene." }]);
+      return;
     }
+
+    const { clean, buttons: newBtns, newWords, dogru, yanlis, diagParsed, streakDone } = parseResponse(raw);
+
+    if (diagParsed) { setDiag(diagParsed); showToast("✅ Profil oluşturuldu!"); }
+    if (newWords.length > 0) {
+      setWords(prev => { showToast(`${newWords.length} kelime eklendi! 📚`); return [...prev, ...newWords]; });
+    }
+    if (dogru > 0 || yanlis > 0 || streakDone) {
+      setStats(prev => {
+        const isNew = prev.lastDay !== today();
+        const ns = streakDone ? (isNew ? prev.streak + 1 : prev.streak) : prev.streak;
+        if (streakDone && isNew) showToast(`🔥 ${ns} günlük seri!`, "streak");
+        else if (dogru > 0) showToast(`✅ ${dogru} doğru!`);
+        return { dogru: prev.dogru + dogru, yanlis: prev.yanlis + yanlis, streak: ns, lastDay: streakDone ? today() : prev.lastDay };
+      });
+    }
+
+    setLoading(false);
+    typeAnim(clean, newBtns, (t) => {
+      setMessages(p => [...p, { role: "assistant", content: t }]);
+    });
   };
 
   const hk = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } };
   const acc = stats.dogru + stats.yanlis > 0 ? Math.round(stats.dogru / (stats.dogru + stats.yanlis) * 100) : 0;
-  const qr = diag
-    ? ["Devam 💪", "Kelime çalış 📚", "Gramer 🔤", "Paragraf 📖", "Mini sınav 🎯"]
-    : ["YÖKDİL'e gireceğim", "YDS'ye gireceğim"];
 
   return (
     <div style={S.app}>
@@ -293,26 +381,50 @@ export default function App() {
       {view === "chat" && (
         <>
           <div style={S.msgs}>
-            {messages.map((m,i) => <Bubble key={i} msg={m} />)}
-            {loading && !isTyping && <Loading />}
-            {isTyping && typing && <Bubbling text={typing} />}
+            {messages.map((m,i) => (
+              <div key={i} style={{display:"flex",alignItems:"flex-end",gap:8,flexDirection:m.role==="user"?"row-reverse":"row"}}>
+                {m.role!=="user" && <Av />}
+                <div className={m.role==="user"?"ub":"ab"}>{m.content}</div>
+              </div>
+            ))}
+            {loading && (
+              <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
+                <Av />
+                <div className="ab" style={{padding:"14px 16px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{display:"flex",gap:5}}>{[0,1,2].map(i=><div key={i} className="dot" style={{animationDelay:`${i*0.2}s`}}/>)}</div>
+                    <span style={{fontSize:12,color:"#475569"}}>{loadingMsg}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isTyping && typing && (
+              <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
+                <Av /><div className="ab">{typing}<span className="cursor"/></div>
+              </div>
+            )}
             <div ref={endRef} />
           </div>
-          {!loading && !isTyping && (
-            <div style={S.qw}>{qr.map((q,i) => <button key={i} className="qbtn" onClick={() => send(q)}>{q}</button>)}</div>
+
+          {!loading && !isTyping && buttons.length > 0 && (
+            <div style={S.btnArea}>
+              {buttons.map((btn, i) => (
+                <button key={i} className="cbtn" onClick={() => send(btn)}>{btn}</button>
+              ))}
+            </div>
           )}
+
           <div style={S.ia}>
             <div style={S.ir} className="ir">
               <textarea ref={taRef} rows={1} value={input}
-                onChange={e => { setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; }}
-                onKeyDown={hk} placeholder="Mesajını yaz..." disabled={loading||isTyping} style={S.ta} />
+                onChange={e => { setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,100)+"px"; }}
+                onKeyDown={hk} placeholder="veya buraya yaz..." disabled={loading||isTyping} style={S.ta} />
               <button style={{...S.sb, opacity:(!input.trim()||loading||isTyping)?0.3:1}} onClick={() => send(input)} disabled={!input.trim()||loading||isTyping}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
               </button>
             </div>
-            <p style={S.hint}>Enter gönder · Shift+Enter yeni satır</p>
           </div>
         </>
       )}
@@ -324,7 +436,7 @@ export default function App() {
             <div style={S.empty}>
               <div style={{fontSize:48,marginBottom:12}}>📖</div>
               <p style={{fontSize:16,color:"#94a3b8"}}>Henüz kelime yok.</p>
-              <button className="qbtn" style={{marginTop:16}} onClick={() => { setView("chat"); send("Kelime çalış"); }}>Başla →</button>
+              <button className="cbtn" style={{marginTop:16}} onClick={() => { setView("chat"); send("Kelime Çalış"); }}>Başla →</button>
             </div>
           ) : (
             <div style={S.wg}>
@@ -350,16 +462,24 @@ export default function App() {
           <div style={S.ph}><h2 style={S.pt}>📊 İstatistikler</h2></div>
           <div style={S.sg}>
             {[["✅","Doğru",stats.dogru,"#22c55e"],["❌","Yanlış",stats.yanlis,"#ef4444"],["🔥","Seri",`${stats.streak}g`,"#f97316"],["🎯","Başarı",`%${acc}`,"#3b82f6"],["📚","Kelime",words.length,"#8b5cf6"]].map(([ic,lb,vl,cl],i) => (
-              <div key={i} className="sc"><div style={{fontSize:26}}>{ic}</div><div style={{fontSize:20,fontWeight:700,color:cl,marginTop:4}}>{vl}</div><div style={{fontSize:11,color:"#64748b",marginTop:2}}>{lb}</div></div>
+              <div key={i} className="sc">
+                <div style={{fontSize:26}}>{ic}</div>
+                <div style={{fontSize:20,fontWeight:700,color:cl,marginTop:4}}>{vl}</div>
+                <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{lb}</div>
+              </div>
             ))}
           </div>
           {stats.dogru+stats.yanlis > 0 && (
             <div style={{background:"#121d33",border:"1px solid rgba(99,179,237,0.1)",borderRadius:14,padding:16,marginBottom:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#94a3b8",marginBottom:8}}><span>Doğruluk</span><span style={{color:"#22c55e",fontWeight:600}}>%{acc}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#94a3b8",marginBottom:8}}>
+                <span>Doğruluk</span><span style={{color:"#22c55e",fontWeight:600}}>%{acc}</span>
+              </div>
               <div style={{background:"#1e293b",borderRadius:999,height:8,overflow:"hidden"}}>
                 <div style={{height:"100%",background:"linear-gradient(90deg,#22c55e,#86efac)",borderRadius:999,width:`${acc}%`}} />
               </div>
-              <p style={{fontSize:12,color:"#64748b",marginTop:8,textAlign:"center"}}>{acc>=80?"🌟 Harika!":acc>=60?"💪 İyi gidiyorsun!":"📖 Devam et!"}</p>
+              <p style={{fontSize:12,color:"#64748b",marginTop:8,textAlign:"center"}}>
+                {acc>=80?"🌟 Harika!":acc>=60?"💪 İyi gidiyorsun!":"📖 Devam et!"}
+              </p>
             </div>
           )}
           {diag && (
@@ -371,8 +491,8 @@ export default function App() {
               <p style={{fontSize:13,color:"#94a3b8"}}><b>Hedef:</b> {diag.gunluk_hedef}/gün</p>
             </div>
           )}
-          <button className="qbtn" style={{margin:"8px auto",display:"block"}}
-            onClick={() => { if(window.confirm("Sıfırlansın mı?")) { localStorage.removeItem("yk5"); window.location.reload(); } }}>
+          <button className="cbtn" style={{margin:"8px auto",display:"block"}}
+            onClick={() => { if(window.confirm("Sıfırlansın mı?")) { localStorage.removeItem("yk11"); window.location.reload(); } }}>
             🗑️ Sıfırla
           </button>
         </div>
@@ -381,40 +501,12 @@ export default function App() {
   );
 }
 
-function Bubble({ msg }) {
-  const u = msg.role === "user";
-  return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:8,flexDirection:u?"row-reverse":"row"}}>
-      {!u && <Av />}
-      <div className={u?"ub":"ab"}>{msg.content}</div>
-    </div>
-  );
-}
-
-function Loading() {
-  return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-      <Av />
-      <div className="ab" style={{padding:"14px 16px"}}>
-        <div style={{display:"flex",gap:5}}>{[0,1,2].map(i=><div key={i} className="dot" style={{animationDelay:`${i*0.2}s`}}/>)}</div>
-      </div>
-    </div>
-  );
-}
-
-function Bubbling({ text }) {
-  return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-      <Av />
-      <div className="ab">{text}<span className="cursor"/></div>
-    </div>
-  );
-}
-
 function Av() {
   return (
     <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
     </div>
   );
 }
@@ -422,8 +514,7 @@ function Av() {
 const S = {
   app:{fontFamily:"'Sora',sans-serif",background:"#080d1a",minHeight:"100vh",display:"flex",flexDirection:"column",color:"#e2e8f0",overflowX:"hidden"},
   hdr:{background:"linear-gradient(135deg,#0d1b3e,#080d1a)",borderBottom:"1px solid rgba(99,179,237,0.12)",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0},
-  hl:{display:"flex",alignItems:"center",gap:10},
-  hr:{display:"flex",alignItems:"center",gap:10},
+  hl:{display:"flex",alignItems:"center",gap:10}, hr:{display:"flex",alignItems:"center",gap:10},
   logo:{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace",fontSize:12,fontWeight:600,color:"white"},
   an:{fontSize:14,fontWeight:700,background:"linear-gradient(90deg,#93c5fd,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"},
   as:{fontSize:10,color:"#475569",marginTop:1},
@@ -432,13 +523,12 @@ const S = {
   nb:{background:"none",border:"1px solid rgba(99,179,237,0.1)",borderRadius:8,width:34,height:34,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"},
   nba:{background:"rgba(59,130,246,0.15)",borderColor:"rgba(59,130,246,0.3)"},
   db:{background:"rgba(15,23,42,0.8)",borderBottom:"1px solid rgba(59,130,246,0.08)",padding:"8px 16px",display:"flex",gap:6,flexWrap:"wrap",flexShrink:0},
-  msgs:{flex:1,overflowY:"auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:14},
-  qw:{padding:"8px 16px 0",display:"flex",gap:6,flexWrap:"wrap",flexShrink:0},
-  ia:{padding:"10px 16px 14px",background:"#080d1a",borderTop:"1px solid rgba(99,179,237,0.07)",flexShrink:0},
+  msgs:{flex:1,overflowY:"auto",padding:"16px 16px 8px",display:"flex",flexDirection:"column",gap:12},
+  btnArea:{padding:"10px 16px",display:"flex",flexWrap:"wrap",gap:8,flexShrink:0,background:"#0d1424",borderTop:"1px solid rgba(99,179,237,0.06)"},
+  ia:{padding:"6px 16px 14px",background:"#080d1a",flexShrink:0},
   ir:{display:"flex",gap:8,alignItems:"flex-end",background:"#121d33",border:"1px solid rgba(99,179,237,0.12)",borderRadius:16,padding:"8px 8px 8px 14px"},
-  ta:{flex:1,background:"none",border:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Sora',sans-serif",fontSize:14,resize:"none",maxHeight:120,lineHeight:1.5,padding:"4px 0"},
+  ta:{flex:1,background:"none",border:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Sora',sans-serif",fontSize:14,resize:"none",maxHeight:100,lineHeight:1.5,padding:"4px 0"},
   sb:{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#2563eb,#7c3aed)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0},
-  hint:{fontSize:10,color:"#1e293b",marginTop:5,textAlign:"center"},
   panel:{flex:1,overflowY:"auto",padding:"16px"},
   ph:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16},
   pt:{fontSize:17,fontWeight:700,color:"#e2e8f0"},
@@ -458,14 +548,23 @@ const CSS = `
 .badge.green{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.25);color:#86efac;}
 .badge.orange{background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.25);color:#fb923c;}
 .badge.gray{background:rgba(100,116,139,0.12);border-color:rgba(100,116,139,0.25);color:#94a3b8;}
-.ab{max-width:78%;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:14px;line-height:1.75;white-space:pre-wrap;background:#121d33;border:1px solid rgba(99,179,237,0.08);color:#cbd5e1;}
-.ub{max-width:78%;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:14px;line-height:1.75;white-space:pre-wrap;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;}
+.ab{max-width:82%;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:14px;line-height:1.75;white-space:pre-wrap;background:#121d33;border:1px solid rgba(99,179,237,0.08);color:#cbd5e1;}
+.ub{max-width:82%;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:14px;line-height:1.75;white-space:pre-wrap;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;}
 .dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:bounce 1.2s infinite ease-in-out;}
 @keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1);opacity:1}}
 .cursor{display:inline-block;width:2px;height:14px;background:#3b82f6;margin-left:2px;vertical-align:middle;animation:blink 0.8s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.qbtn{background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.18);color:#93c5fd;border-radius:20px;padding:6px 14px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all 0.2s;}
-.qbtn:hover{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.35);transform:translateY(-1px);}
+.cbtn{
+  background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(124,58,237,0.12));
+  border:1.5px solid rgba(99,179,237,0.2);
+  color:#e2e8f0;border-radius:12px;padding:11px 18px;
+  font-size:14px;font-family:'Sora',sans-serif;cursor:pointer;
+  transition:all 0.15s;font-weight:500;min-height:46px;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:1;min-width:100px;text-align:center;line-height:1.3;
+}
+.cbtn:hover{background:linear-gradient(135deg,rgba(37,99,235,0.25),rgba(124,58,237,0.25));border-color:rgba(99,179,237,0.4);}
+.cbtn:active{transform:scale(0.96);}
 .ir:focus-within{border-color:rgba(59,130,246,0.35)!important;}
 .wcard{background:#121d33;border:1px solid rgba(99,179,237,0.08);border-radius:14px;padding:14px;transition:border-color 0.2s;}
 .wcard:hover{border-color:rgba(59,130,246,0.25);}
